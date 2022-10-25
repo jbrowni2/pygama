@@ -300,6 +300,9 @@ class ORSIS3316WaveformDecoder(OrcaDecoder):
             "channel": {
                 "dtype": "uint8",
             },
+            "preTrigger": {
+                "dtype": "uint32",
+            },
             # waveform data
             "waveform": {
                 "dtype": "uint16",
@@ -341,6 +344,8 @@ class ORSIS3316WaveformDecoder(OrcaDecoder):
                             )
 
                         self.decoded_values[ccc]["waveform"]["wf_len"] = trace_length
+                        global preTrig
+                        preTrig = card_dict["preTriggerDelay"]
                     else:
                         continue
 
@@ -531,6 +536,15 @@ class ORSIS3316WaveformDecoder(OrcaDecoder):
                 else:
                     tbl["startEnergy"].nda[ii] = -1
                     tbl["maxEnergy"].nda[ii] = -1
+
+                if channel >= 0 and channel <= 3:
+                    tbl["preTrigger"].nda[ii] = preTrig[0]
+                elif channel >= 4 and channel <= 7:
+                    tbl["preTrigger"].nda[ii] = preTrig[1]
+                elif channel >= 8 and channel <= 11:
+                    tbl["preTrigger"].nda[ii] = preTrig[2]
+                elif channel >= 12 and channel <= 15:
+                    tbl["preTrigger"].nda[ii] = preTrig[3]
 
                 data_header_length16 = data_header_length * 2
 
