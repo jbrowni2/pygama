@@ -325,29 +325,30 @@ class ORSIS3316WaveformDecoder(OrcaDecoder):
 
         for card_dict in self.header["ObjectInfo"]["Crates"][0]["Cards"]:
             if card_dict["Class Name"] == "ORSIS3316Model":
-                channel_list = [int(d) for d in str(bin(card_dict["enabledMask"]))[2:]]
+                # channel_list = [int(d) for d in str(bin(card_dict["enabledMask"]))[2:]]
                 card = card_dict["Card"]
                 crate = 0
-                for i in range(0, len(channel_list)):
-                    if int(channel_list[i]) == 1:
-                        channel = i
-                        ccc = get_ccc(crate, card, channel)
-                        trace_length = card_dict["rawDataBufferLen"]
-                        self.decoded_values[ccc] = copy.deepcopy(
-                            self.decoded_values_template
+                for i in range(0, 16):
+                    channel = i
+                    ccc = get_ccc(crate, card, channel)
+                    # print(ccc)
+                    trace_length = card_dict["rawDataBufferLen"]
+                    self.decoded_values[ccc] = copy.deepcopy(
+                        self.decoded_values_template
+                    )
+
+                    if trace_length < 0 or trace_length > 2**16:
+                        raise RuntimeError(
+                            "invalid trace_length: ",
+                            trace_length,
                         )
 
-                        if trace_length <= 0 or trace_length > 2**16:
-                            raise RuntimeError(
-                                "invalid trace_length: ",
-                                trace_length,
-                            )
+                    self.decoded_values[ccc]["waveform"]["wf_len"] = trace_length
+                    global preTrig
+                    preTrig = card_dict["preTriggerDelay"]
 
-                        self.decoded_values[ccc]["waveform"]["wf_len"] = trace_length
-                        global preTrig
-                        preTrig = card_dict["preTriggerDelay"]
-                    else:
-                        continue
+                else:
+                    continue
 
     def get_key_list(self) -> list[int]:
         key_list = []
@@ -441,6 +442,7 @@ class ORSIS3316WaveformDecoder(OrcaDecoder):
         card = (packet[1] >> 16) & 0x1F
         channel = (packet[1] >> 8) & 0xFF
         ccc = get_ccc(crate, card, channel)
+        # print(ccc)
 
         # Check if this ccc should be recorded.
         if ccc not in evt_rbkd:
@@ -456,6 +458,11 @@ class ORSIS3316WaveformDecoder(OrcaDecoder):
         num_of_events = packet[2]
         num_of_longs = packet[3]
         data_header_length = packet[5]
+        # maxNumOfWaveforms = packet[6]
+        # print("max number of waves",maxNumOfWaveforms)
+        # print("expected number of words", packet[7])
+        # print("actual number of words", num_of_longs)
+        # print("num in buffer", packet[4])
 
         # Creating the first table and finding the index.
         tbl = evt_rbkd[ccc].lgdo
@@ -491,14 +498,6 @@ class ORSIS3316WaveformDecoder(OrcaDecoder):
                     tbl["accSum2"].nda[ii] = packet[index]
                     index += 1
                     tbl["accSum3"].nda[ii] = packet[index]
-                    index += 1
-                    tbl["accSum4"].nda[ii] = packet[index]
-                    index += 1
-                    tbl["accSum5"].nda[ii] = packet[index]
-                    index += 1
-                    tbl["accSum6"].nda[ii] = packet[index]
-                else:
-                    tbl["peakHighValue"].nda[ii] = -1
                     tbl["peakHighIndex"].nda[ii] = -1
                     tbl["accSum1"].nda[ii] = -1
                     tbl["accSum2"].nda[ii] = -1
@@ -553,6 +552,36 @@ class ORSIS3316WaveformDecoder(OrcaDecoder):
                 i_wf_start = data_header_length16 + event_start * 2
 
                 i_wf_stop = i_wf_start + expected_wf_length
+
+                if i >= 1:
+                    # print("index: ", ii)
+                    for j in np.arange(0, 40, 1):
+                        # if packet[event_start + j] == 55:
+                        # print("channel is: ", channel)
+                        # print("index of 55 is: ", event_start + j)
+                        try:
+                            if (
+                                packet[event_start + j] & 0x3FFFFFF
+                                == len(tbl["waveform"]["values"].nda[ii]) / 2
+                            ):
+                                # print("index for packet is: ", event_start + j)
+                                # print("index is: ", ii)
+                                # print(data_header_length)
+                                tbl["timestamp"].nda[ii] = packet[
+                                    event_start + j - data_header_length + 2
+                                ] + (
+                                    (
+                                        packet[event_start + j - data_header_length + 1]
+                                        & 0xFFFF0000
+                                    )
+                                    << 16
+                                )
+                            # print("actual timestamp",tbl["timestamp"].nda[ii])
+                            # print("previous timestamp",tbl["timestamp"].nda[ii-1])
+                        except BaseException:
+                            tbl["timestamp"].nda[ii] = packet[event_start + 1] + (
+                                (packet[event_start] & 0xFFFF0000) << 16
+                            )
 
                 if expected_wf_length > 0:
                     tbl["waveform"]["values"].nda[ii] = evt_data_16[

@@ -66,13 +66,13 @@ class ORAmi286DecoderForLevel(OrcaDecoder):
         import copy
 
         self.decoded_values = copy.deepcopy(self.decoded_values_template)
-        #for info in self.header:
+        # for info in self.header:
         #    print(self.header[info])
 
         for card_dict in self.header["dataDescription"]:
             if card_dict == "Ami286Model":
                 crate = 2
-                card=0
+                card = 0
                 for channel in range(0, 4):
                     ccc = get_ccc(crate, card, channel)
                     self.decoded_values[ccc] = copy.deepcopy(
@@ -130,7 +130,6 @@ class ORAmi286DecoderForLevel(OrcaDecoder):
         crate = 2
         card = 0
         num_of_ch = 4
-        print("hello")
 
         for i in range(0, int(num_of_ch)):
 
@@ -138,11 +137,8 @@ class ORAmi286DecoderForLevel(OrcaDecoder):
             # to check if they want to record the values for that channel or not.
             channel = i
             chan_check = get_ccc(crate, card, channel)
-            print(chan_check)
             if chan_check not in key_list:
                 continue
-            
-            print("Hello")
 
             ccc = get_ccc(crate, card, channel)
             tbl = evt_rbkd[ccc].lgdo

@@ -70,6 +70,7 @@ from .histogram import histogram, histogram_stats
 from .linear_slope_fit import linear_slope_fit
 from .log_check import log_check
 from .min_max import min_max
+from .moving_window_max import moving_window_max
 from .moving_windows import (
     avg_current,
     moving_window_left,
@@ -91,6 +92,7 @@ from .time_over_threshold import time_over_threshold
 from .time_point_thresh import time_point_thresh
 from .trap_filters import asym_trap_filter, trap_filter, trap_norm, trap_pickoff
 from .upsampler import interpolating_upsampler, upsampler
+from .waveletDenoise import denoise_wave
 from .wiener_filter import wiener_filter
 from .windower import windower
 
@@ -141,4 +143,6 @@ __all__ = [
     "windower",
     "time_over_threshold",
     "subline",
+    "denoise_wave",
+    "moving_window_max",
 ]

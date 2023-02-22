@@ -17,8 +17,6 @@ from pygama.raw.orca.orca_flashcam import (  # noqa: F401
     ORFlashCamADCWaveformDecoder,
     ORFlashCamListenerConfigDecoder,
 )
-from pygama.raw.orca.orca_IsegHV import ORiSegHVCardDecoderForHV
-from pygama.raw.orca.orca_LNController import ORAmi286DecoderForLevel
 from pygama.raw.orca.orca_header_decoder import OrcaHeaderDecoder
 from pygama.raw.raw_buffer import RawBuffer, RawBufferLibrary
 
@@ -68,8 +66,12 @@ class OrcaStreamer(DataStreamer):
             and orca_packet.get_data_id(pkt_hdr, shift=False)
             not in self.decoder_id_dict
         ):
+            # if orca_packet.get_data_id(pkt_hdr, shift=False) == 0:
+            #    return pkt_hdr
             self.in_stream.seek((n_words - 1) * 4, 1)
             self.n_bytes_read += (n_words - 1) * 4  # well, we didn't really read it...
+            if orca_packet.get_data_id(pkt_hdr, shift=False) == 0:
+                return pkt_hdr
             return pkt_hdr
 
         # load into buffer, resizing as necessary
@@ -222,7 +224,6 @@ class OrcaStreamer(DataStreamer):
                     )
         for name in decoder_names:
             # handle header decoder specially
-            print(name)
             if name == "OrcaHeaderDecoder":
                 self.decoder_id_dict[0] = self.header_decoder
                 self.decoder_name_dict["OrcaHeaderDecoder"] = 0
